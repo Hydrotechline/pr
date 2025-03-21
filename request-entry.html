@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .left-section {
+      width: 35%;
+      background-color: #fff;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .headline-box {
+      background-color: #007BFF;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .date-time-box {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 10px;
+    }
+
+    .form-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px; /* Reduced by 50% */
+      margin-bottom: 16px;
+    }
+
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-row label {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .form-row input,
+    .form-row select {
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    .submit-button {
+      background-color: #28a745;
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+
+    .right-section {
+      width: 65%;
+      background-color: rgba(211, 211, 211, 0.85);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .submitted-requests-heading {
+      background-color: #007BFF;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .column-headings {
+      display: flex;
+      background-color: #32c1c6;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .column-headings div,
+    .entry-row div {
+      flex: 1;
+      text-align: center;
+      padding: 5px;
+      border-right: 1px solid white;
+    }
+
+    .column-headings div:nth-child(6),
+    .column-headings div:nth-child(7),
+    .entry-row div:nth-child(6),
+    .entry-row div:nth-child(7) {
+      text-align: right;
+      padding-right: 20px;
+    }
+
+    .entry-row div:last-child,
+    .column-headings div:last-child {
+      border-right: none;
+    }
+
+    .submitted-entries {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+
+    .entry-row {
+      display: flex;
+      background-color: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .export-buttons {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .export-buttons button {
+      background-color: #007BFF;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .filter-container {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .filter-container label {
+      font-weight: bold;
+    }
+
+    .filter-container input,
+    .filter-container select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .filter-container button {
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+  </style>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- Left Section -->
+  <div class="left-section">
+    <div class="headline-box">
+      <h2>Request Form</h2>
+    </div>
+    <div class="date-time-box">
+      <p id="currentDateTime"></p>
+    </div>
+    <div class="form-container">
+      <form id="requestForm" onsubmit="submitForm(event)">
+        <div class="form-row">
+          <label for="division">Division:</label>
+          <select id="division" required>
+            <option value="">Select Division</option>
+            <option value="Water Division">Water Division</option>
+            <option value="Metal Division">Metal Division</option>
+            <option value="Civil Division">Civil Division</option>
+            <option value="Office Division">Office Division</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="project-code">Project Code:</label>
+          <input type="text" id="project-code" required>
+        </div>
+
+        <div class="form-row">
+          <label for="lpo-ref">LPO Ref:</label>
+          <input type="text" id="lpo-ref" required>
+        </div>
+
+        <div class="form-row">
+          <label for="lpo-date">LPO Date:</label>
+          <input type="date" id="lpo-date" required>
+        </div>
+
+        <div class="form-row">
+          <label for="lpo-net-value">LPO Net Value:</label>
+          <input type="number" id="lpo-net-value" step="0.01" required>
+        </div>
+
+        <div class="form-row">
+          <label for="request-value">Request Value:</label>
+          <input type="number" id="request-value" step="0.01" required>
+        </div>
+
+        <div class="form-row">
+          <label for="lpo-beneficiary">Beneficiary:</label>
+          <input type="text" id="lpo-beneficiary" required>
+        </div>
+
+        <button type="submit" class="submit-button">Submit</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right Section -->
+  <div class="right-section">
+    <div class="submitted-requests-heading">
+      <h2>Submitted Requests</h2>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-container">
+      <label for="filter-by">Filter By:</label>
+      <select id="filter-by">
+        <option value="division">Division</option>
+        <option value="projectCode">Project Code</option>
+        <option value="lpoRef">LPO Ref</option>
+        <option value="lpoDate">LPO Date</option>
+        <option value="lpoNetValue">LPO Net Value</option>
+        <option value="requestValue">Request Value</option>
+        <option value="lpoBeneficiary">Beneficiary</option>
+        <option value="status">Status</option>
+        <option value="submitted">Submitted</option>
+      </select>
+
+      <input type="text" id="filter-input" placeholder="Enter value to filter...">
+      <button id="filter-btn" onclick="applyFilter()">Go</button>
+    </div>
+
+    <div class="column-headings">
+      <div>S.N</div>
+      <div>Division</div>
+      <div>Project Code</div>
+      <div>LPO Ref</div>
+      <div>LPO Date</div>
+      <div>LPO Net Value</div>
+      <div>Request Value</div>
+      <div>Beneficiary</div>
+      <div>Status</div>
+      <div>Submitted</div>
+    </div>
+    <div id="entries-container" class="submitted-entries"></div>
+  </div>
+
+  <!-- Export Buttons -->
+  <div class="export-buttons">
+    <button onclick="exportToPDF()">
+      <i class="fas fa-file-pdf"></i>
+    </button>
+    <button onclick="exportToExcel()">
+      <i class="fas fa-file-excel"></i>
+    </button>
+  </div>
+
+  <script>
+    // Utility Functions
+    function formatDate(date) {
+      if (!date) return 'N/A';
+      const d = new Date(date);
+      return d.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function formatNumber(value) {
+      return value?.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) || '0.00';
+    }
+
+    // Form Handling
+    function submitForm(event) {
+      event.preventDefault();
+      alert('Request submitted successfully!');
+    }
+
+    // Filter function
+    function applyFilter() {
+      const filterBy = document.getElementById('filter-by').value;
+      const filterInput = document.getElementById('filter-input').value.toLowerCase();
+
+      const rows = document.querySelectorAll('.entry-row');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('div');
+        let match = false;
+        switch(filterBy) {
+          case 'division':
+            match = cells[1].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'projectCode':
+            match = cells[2].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'lpoRef':
+            match = cells[3].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'lpoDate':
+            match = cells[4].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'lpoNetValue':
+            match = cells[5].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'requestValue':
+            match = cells[6].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'lpoBeneficiary':
+            match = cells[7].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'status':
+            match = cells[8].innerText.toLowerCase().includes(filterInput);
+            break;
+          case 'submitted':
+            match = cells[9].innerText.toLowerCase().includes(filterInput);
+            break;
+        }
+        row.style.display = match ? '' : 'none';
+      });
+    }
+
+    // Export Functions
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('landscape');
+      
+      const headers = [['Division', 'Project Code', 'LPO Ref', 'LPO Date', 
+                       'LPO Net Value', 'Request Value', 'Beneficiary', 'Status', 'Submitted']];
+      
+      const rows = [];
+      document.querySelectorAll('.entry-row').forEach(row => {
+        const cells = row.querySelectorAll('div');
+        rows.push([ 
+          cells[1].innerText,
+          cells[2].innerText,
+          cells[3].innerText,
+          cells[4].innerText,
+          cells[5].innerText,
+          cells[6].innerText,
+          cells[7].innerText,
+          cells[8].innerText,
+          cells[9].innerText
+        ]);
+      });
+
+      doc.autoTable({ head: headers, body: rows });
+      doc.save('requests.pdf');
+    }
+
+    function exportToExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([ 
+        ['Division', 'Project Code', 'LPO Ref', 'LPO Date', 
+         'LPO Net Value', 'Request Value', 'Beneficiary', 'Status', 'Submitted']
+      ]);
+      
+      document.querySelectorAll('.entry-row').forEach(row => {
+        const cells = row.querySelectorAll('div');
+        const rowData = Array.from(cells).map(cell => cell.innerText);
+        XLSX.utils.sheet_add_aoa(ws, [rowData], { origin: -1 });
+      });
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Requests');
+      XLSX.writeFile(wb, 'requests.xlsx');
+    }
+  </script>
+</body>
+</html>
